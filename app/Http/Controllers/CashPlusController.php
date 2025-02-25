@@ -13,39 +13,57 @@ class CashPlusController extends Controller
         public function generateToken(Request $request)
         {
             try{
-            $request_id = uniqid();
-            $amount = $request->input('amount');
-            $fees = 0; //  feel price for the transaction , if 0 then no fees if
-            $marchand_code = env('CASHPLUS_MERCHANT_CODE');
-            $secret_key = env('CASHPLUS_SECRET_KEY');
-            $username = $request->input('username');
-
-            $hmac = strtoupper(hash('sha256', $marchand_code . $secret_key . $amount));
-
-            $payload = [
-                'request_id' => $request_id,
-                'amount' => $amount,
-                'fees' => $fees,
-                'marchand_code' => $marchand_code,
-                'hmac' => $hmac,
-                'json_data' => json_encode([
-                    ['key' => 'username', 'value' => $username]
-                ])
-            ];
-
-            $response = Http::post(env('CASHPLUS_API_URL') . '/generate_token', $payload);
-            $responseData = $response->json();
-
-            if ($responseData['SUCCESS'] === 1) {
-                return redirect()->route('/')->with('success', 'Token generated successfully! Token: ' . $responseData['TOKEN']);
-            } else {
-                return redirect()->route('/')->with('error', $responseData['MESSAGE']);
+                $request_id = uniqid();
+                $amount = (string) $request->input('amount'); // Cast en string
+                $fees = 0; // Pas de frais
+                $marchand_code = env('CASHPLUS_MERCHANT_CODE');
+                $secret_key = env('CASHPLUS_SECRET_KEY');
+                $username = $request->input('username');
+                
+                $hmac = strtoupper(hash('sha256', $marchand_code . $secret_key . $amount));
+                
+                $payload = [
+                    'request_id' => $request_id,
+                    'amount' => $amount,
+                    'date_expiration' => "", // Vide comme l'exemple donné
+                    'fees' => $fees,
+                    'marchand_code' => $marchand_code,
+                    'hmac' => $hmac,
+                    'json_data' => !empty($username) ? json_encode([['key' => 'username', 'value' => $username]]) : "" // Vérifier si json_data doit être vide
+                ];
+                
+                $response = Http::withHeaders([
+                    'User-Agent' => 'LaravelHttpClient',
+                    'Accept' => 'application/json'
+                ])->post(env('CASHPLUS_API_URL') . 'generate_token', $payload);
+                    dd($response);
+                // Gérer la réponse
+                if ($response->successful()) {
+                    $responseData = $response->json();
+                    if ($responseData['SUCCESS'] == 1) {
+                        return response()->json([
+                            'success' => true,
+                            'token' => $responseData['TOKEN'],
+                            'date_expiration' => $responseData['DATE_EXPIRATION']
+                        ]);
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $responseData['MESSAGE'] ?? 'Erreur inconnue'
+                        ], 400);
+                    }
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Erreur de connexion à l’API CashPlus'
+                    ], 500);
+                }
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur inconnue'
+                ], 500);
             }
-        } catch (\Exception $e) {
-            return redirect('/')->with('error', $e->getMessage());
-
-        }
-
         }
 
 
