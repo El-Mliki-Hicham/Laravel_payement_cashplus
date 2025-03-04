@@ -8,5 +8,5 @@ Route::get('/', function () {
 });
 Route::post('/generate-token', [CashPlusController::class, 'generateToken'])->name('generate.token');
 
-Route::post('/check-token-status', [CashPlusController::class, 'statusToken']);
+Route::get('/check-token-status', [CashPlusController::class, 'statusToken']);
     Route::post('/handle-callback', [CashPlusController::class, 'handleCallback']);

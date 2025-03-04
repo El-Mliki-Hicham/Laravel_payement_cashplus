@@ -35,8 +35,7 @@ class CashPlusController extends Controller
                 $response = Http::withHeaders([
                     'User-Agent' => 'LaravelHttpClient',
                     'Accept' => 'application/json'
-                ])->post(env('CASHPLUS_API_URL') . 'generate_token', $payload);
-                    dd($response);
+                ])->post(env('CASHPLUS_API_URL') . '/generate_token', $payload);
                 // Gérer la réponse
                 if ($response->successful()) {
                     $responseData = $response->json();
